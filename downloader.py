@@ -1,7 +1,7 @@
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 from scratchclient import ScratchSession
-import consts_drscratch as consts
+import consts_scratch as consts
 import json
 import traceback
 import argparse

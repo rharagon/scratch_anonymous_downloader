@@ -1,5 +1,5 @@
 import requests
-import consts_drscratch as consts
+import consts_scratch as consts
 
 
 class Project:

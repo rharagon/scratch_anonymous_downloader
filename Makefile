@@ -1,4 +1,4 @@
-ENV_FILE = .env
+ENV_FILE = PARAMS
 # make start IDENTIFIER=2 AMOUNT=3
 requirements:
 	pip install -r requirements.txt
