@@ -1,0 +1,31 @@
+version: '2.1'
+services:
+  tor_proxy:
+    build: ./tor_proxy
+    command: sh -c "tor"
+    container_name: tor_proxy
+    ports:
+      - "9050:9050"
+    healthcheck:
+      test: ["CMD", "true"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+  web:
+    build: .
+    volumes:
+      - .:/var/www
+    command: ["python", "downloader.py", "--identifier", "${IDENTIFIER}", "--amount", "${AMOUNT}"]
+    container_name: scratch_downloader
+    user: root
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./.env
+    stdin_open: true
+    tty: true
+    depends_on:
+      tor_proxy:
+        condition: service_healthy
+volumes:
+  dbdata:
