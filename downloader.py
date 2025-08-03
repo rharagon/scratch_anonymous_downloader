@@ -78,12 +78,24 @@ def download_scratch_project_from_servers(path_project, id_project):
         traceback.print_exc()
 
     try:
-        json_string_format = response_from_scratch.read()
-        json_data = json.loads(json_string_format)
-        resulting_file = open(path_json_file, 'wb')
-        resulting_file.write(json_string_format)
-        resulting_file.close()
-    except IOError as e:
+        raw = response_from_scratch.read()
+        status = getattr(response_from_scratch, "getcode", lambda: None)()
+        if status and status != 200:
+            raise RuntimeError(f"Unexpected HTTP status {status} for project {id_project}")
+        try:
+            text = raw.decode('utf-8')
+        except UnicodeDecodeError:
+            text = raw.decode('latin-1', errors='replace')
+        if not text.strip() or text.lstrip()[0] not in ('{','['):
+            raise ValueError(f"Empty or non-JSON response for project {id_project!r}: {text!r}")
+
+        json_data = json.loads(text)
+        with open(path_json_file, 'wb') as f:
+            f.write(text.encode('utf-8'))
+    except ValueError as ve:
+        # <-- aquí capturamos ValueError
+        print(f"\033[93mWarning: {ve}")   # sólo informamos y seguimos
+    except IOError:
         pass
 
     return path_json_file
@@ -109,18 +121,25 @@ def save_projectsb3(path_file_temporary, id_project):
 
     temporary_file_name = str(id_project) + ext_project
 
-    os.chdir(dir_utemp)
-
+    # Intentamos empaquetar el JSON; si no existe, solo avisamos y seguimos
+    current_dir = os.getcwd()
     try:
-        if os.path.exists(temporary_file_name):
-            os.rename(temporary_file_name, 'project.json')
-            with ZipFile(unique_file_name_for_saving, 'w') as myzip:
-                myzip.write('project.json')
-            os.remove('project.json')
-        else:
-            raise FileNotFoundError(f"Temporal file {temporary_file_name} does not exists in {dir_utemp}")
+        os.chdir(dir_utemp)
+        if not os.path.exists(temporary_file_name):
+            # Aviso pero no lanzo excepción que pare el proceso
+            print(f"\033[93mWarning: temporal file {temporary_file_name} not found in {dir_utemp}, skipping project {id_project}")
+            return
+
+        # Renombramos y comprimimos
+        os.rename(temporary_file_name, 'project.json')
+        with ZipFile(unique_file_name_for_saving, 'w') as myzip:
+            myzip.write('project.json')
+        os.remove('project.json')
+    except Exception as e:
+        # Si ocurre otro error, informar pero no interrumpir
+        print(f"\033[91mError al guardar project {id_project}: {e}")
     finally:
-        os.chdir(path_project)
+        os.chdir(current_dir)
 
 
 def spinner(stop_event, id_project):
