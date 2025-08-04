@@ -12,6 +12,9 @@ import threading
 from datetime import datetime 
 from zipfile import ZipFile, BadZipfile
 import uuid
+import requests
+from requests.exceptions import SSLError, JSONDecodeError
+
 
 SUMMARY_DIR = os.path.join(os.path.dirname(__file__), "summaries")
 PROJECTS_SUCCESS = "projects_downloaded"
@@ -87,7 +90,8 @@ def download_scratch_project_from_servers(path_project, id_project):
         except UnicodeDecodeError:
             text = raw.decode('latin-1', errors='replace')
         if not text.strip() or text.lstrip()[0] not in ('{','['):
-            raise ValueError(f"Empty or non-JSON response for project {id_project!r}: {text!r}")
+            # raise ValueError(f"Empty or non-JSON response for project {id_project!r}: {text!r}")
+            raise ValueError(f"Empty or non-JSON response for project {id_project!r}")
 
         json_data = json.loads(text)
         with open(path_json_file, 'wb') as f:
@@ -183,6 +187,18 @@ while PROJECTS_DOWNLOADED < args.amount:
         PROJECTS_NO_DOWNLOADED += 1
         print("\033[91m" + f"The project {start_id} does not exists.")
         log_successful(start_id, False)
+
+    except SSLError as e:
+        PROJECTS_NO_DOWNLOADED += 1
+        # Aviso de SSL, pero no detiene la ejecución
+        print(f"\033[93mWarning: SSL error al descargar el proyecto {start_id}: {e}")
+        log_successful(start_id, False)
+
+    except JSONDecodeError as e:
+        PROJECTS_NO_DOWNLOADED += 1
+        print(f"\033[93mWarning: JSON decode error para el proyecto {start_id}: {e}")
+        log_successful(start_id, False)
+
     start_id += 1
 end_time = time.time()
 elapsed_time = end_time - start_time
