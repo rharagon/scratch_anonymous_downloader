@@ -1,4 +1,3 @@
-version: '2.1'
 services:
   tor_proxy:
     build: ./tor_proxy
@@ -15,7 +14,7 @@ services:
     build: .
     volumes:
       - .:/var/www
-    command: ["python", "downloader.py", "--identifier", "${IDENTIFIER}", "--amount", "${AMOUNT}"]
+    command: ["python", "downloader_multiproceso.py", "--start-id", "${IDENTIFIER}", "--amount", "${AMOUNT}", "--workers", "16"]
     container_name: scratch_downloader
     user: root
     ports:
